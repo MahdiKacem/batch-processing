@@ -1,12 +1,12 @@
 black==24.10.0               
 flake8==7.1.0                
 mypy==1.11.0                 
-isort==5.15.0                  
-moto[all]==5.5.0               
+isort==5.13.2                  
+moto[all]==5.1.10               
 pytest==8.4.0                  
 pytest-mock==3.15.0            
-apache-airflow-client==2.11.0  
-yoyo-migrations==8.3.0          
+apache-airflow-client==2.9.1  
+yoyo-migrations==8.2.0          
 duckdb==1.4.0                   
 plotly==5.24.0                  
 jupyter==1.0.0                  

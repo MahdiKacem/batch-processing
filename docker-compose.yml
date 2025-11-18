@@ -6,12 +6,15 @@ x-airflow-common:
     &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__CORE__SQL_ALCHEMY_CONN: "postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}"
-    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     AIRFLOW__API__AUTH_BACKEND: 'airflow.api.auth.backend.basic_auth'
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
   volumes:
-    - 
+    - ./dags:/opt/airflow/dags
+    - ./data:/opt/airflow/data
+    - ./logs:/opt/airflow/logs
+    - ./visualization:/opt/airflow/visualization
+    - ./temp:/opt/airflow/temp 
   user: "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-50000}"
   depends_on:
     postgres:
@@ -38,7 +41,6 @@ services:
 
   airflow-webserver:
     <<: *airflow-common
-    container-name: webserver
     command: webserver
     ports: 
       - "${AIRFLOW_PORT}:8080"
@@ -57,7 +59,6 @@ services:
 
   airflow-scheduler:
     <<: *airflow-common
-    container_name: scheduler
     command: scheduler
     healthcheck:
       test:

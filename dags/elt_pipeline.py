@@ -43,6 +43,33 @@ def get_s3_folder(
         bucket.download_file(obj.key, taget)
         print(f"Downloaded {obj.key} to {target}")
 
+"""
+
+"""
+def create_user_behaviour_metric():
+    query = """
+        WITH 
+        up AS (
+            SELECT * 
+            FROM '/opt/airflow/temp/s3folder/raw/user_purchase/user_purchase.csv'
+        ),
+        mr AS (
+            SELECT * 
+            FROM '/opt/airflow/temp/s3folder/clean/movie_review/*.parquet'
+        )
+        SELECT
+            up.customer_id,
+            SUM(up.quantity * up.unit_price) AS amount_spent,
+            SUM(
+                CASE WHEN mr.positive_review THEN 1 ELSE 0 END
+            ) AS num_positive_reviews,
+            COUNT(mr.cid) AS num_reviews
+        FROM
+            up JOIN mr ON up.customer_id = mr.cid
+        GROUP BY up.customer_id
+    """
+    duckdb.sql(query).write_csv('/opt/airflow/data/behaviour_metrics.csv')
+
 with DAG(
     "user_analytics_dag",
     description = "A dag to pull user data and movie review data \
@@ -96,4 +123,30 @@ with DAG(
             "s3_bucket": "user-analytics",
             "s3_folder": "raw/user_purchase",
         },
+    )
+
+    get_user_behaviour_metric = PythonOperator(
+        task_id = 'get_user_behaviour_metric',
+        python_callable = create_user_behaviour_metric
+    )
+
+    markdown_path = "/opt/airflow/dags/scripts/dashboard/"
+
+    quarto_cmd = ( f"cd {markdown_path} && quarto render {markdown_path}/dashboard.qmd" )
+
+    generate_dashboard = BashOperator(
+        task_id = "generate_dashboard",
+        bash_command = quarto_cmd
+    )
+    
+    create_s3_bucket >> [user_purchase_to_s3, movie_review_to_s3]
+
+    user_purchase_to_s3 >> get_user_purchase_to_warehouse
+
+    movie_review_to_s3 >> movie_classifier >> get_movie_review_to_warehouse
+
+    ( 
+        [get_user_purchase_to_warehouse, get_movie_review_to_warehouse ] 
+        >> get_user_behaviour_metric
+        >> generate_dashboard
     )

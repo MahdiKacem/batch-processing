@@ -1,6 +1,10 @@
 FROM apache/airflow:2.10.0
-COPY requirement.txt /
+
+
+COPY requirements.txt /
 RUN pip install --no-cache-dir -r /requirements.txt
+
+USER root
 
 COPY quarto.sh /
 RUN cd / && bash /quarto.sh
